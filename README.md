@@ -1,3 +1,3 @@
 # 2022_Khripunov
-# Second Semester
+# Second semester
 # Repository for python lessons
