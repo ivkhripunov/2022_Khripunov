@@ -16,7 +16,7 @@ dr.circle(screen, 0x000000, (570, 250), 30)
 
 dr.polygon(screen, 0x000000, ((230, 170), (50, 50), (70, 30), (260, 120)))
 dr.polygon(screen, 0x000000, ((570, 190), (730, 50), (710, 30), (550, 120)))
-#pygame.transform.rotate(screen, )
+
 pygame.display.update()
 clock = pygame.time.Clock()
 finished = False
