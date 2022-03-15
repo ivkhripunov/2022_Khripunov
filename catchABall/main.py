@@ -167,12 +167,11 @@ class Target(object):
         self.coord = x, y
 
 
-def process_event(ball_array, counter, rating):
+def process_event(ball_array, player):
     """
     Обработка события
     :param ball_array: массив целей
-    :param counter: количество сбитых игроком целей
-    :param rating: рейтинг игрока
+    :param player: игрок
     :return: измененное количество сбитых целей, измененный рейтинг, измененное количество промахов
     """
     for i in range(len(ball_array)):
@@ -182,19 +181,21 @@ def process_event(ball_array, counter, rating):
 
         if quad_distance <= ball_array[i].radius ** 2:
             print("Gotcha!")
-            counter += 1
-            rating += ball_array[i].radius * ball_array[i].speed + ball_array[i].generator_key * ball_array[i].radius
+            player.score += 1
+            player.rating += ball_array[i].radius * ball_array[i].speed + ball_array[i].generator_key * ball_array[i].radius
             if ball_array[i].generator_key == -1:
                 print("You hit the bomb!")
                 ball_array[i] = Target(COLORS[randint(0, 5)])
-                return True, counter, rating
+                if player.rating < 0:
+                    player.rating = 0
+                return True, player
 
             ball_array[i] = Target(COLORS[randint(0, 5)])
             continue
 
-    if rating < 0:
-        rating = 0
-    return False, counter, rating
+    if player.rating < 0:
+        player.rating = 0
+    return False, player
 
 
 def game_over_screen(player):
@@ -262,6 +263,7 @@ def process_step(finished, ball_array):
 
     return finished, ball_array
 
+
 players = players_list()
 
 # игроки поочереди играют
@@ -277,11 +279,9 @@ for player in players:
             if event.type == pygame.QUIT:
                 finished = True
             elif event.type == pygame.KEYDOWN:
-                finished, score, rating = process_event(ball_array, player.score,
-                                                        player.rating)
-                player.set_points(score, rating)
+                finished, player = process_event(ball_array, player)
 
-#переопределение массива целей - необходимая мера
+        # переопределение массива целей - необходимая мера
         finished, ball_array = process_step(finished, ball_array)
 
         if finished:
@@ -289,4 +289,5 @@ for player in players:
 
 pygame.quit()
 
+#выводим таблицу с результатами
 write_rating_table(players)
