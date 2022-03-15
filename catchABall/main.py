@@ -219,6 +219,7 @@ def start_screen(player, timer):
     print("Start in 5 sec")
     print("You will have {} seconds".format(timer))
     print("Do not hit bombs!")
+    print("Press button on the keyboard to hit the target")
     time.sleep(5)
 
     return False, time.time()
