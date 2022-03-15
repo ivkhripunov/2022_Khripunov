@@ -21,21 +21,24 @@ CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
+clock = pygame.time.Clock()
+
 
 class Player(object):
-    def __init__(self, player_name):
+    def __init__(self, player_name, rating=0):
         """
         Инициализация класса
         :param player_name: имя игрока
+        :param rating: рейтинг(счет)
         """
         self.name = player_name
         self.score = 0
-        self.rating = 0
+        self.rating = rating
 
     def set_points(self, score, rating):
         """
         Обновление рейтинговых значений
-        :param score: обновсленный счет
+        :param score: обновсленный счет (количество сбитых целей)
         :param rating: обновленынй рейтинг
         :return: none
         """
@@ -43,30 +46,69 @@ class Player(object):
         self.rating = rating
 
 
-# заполнение списка игроков
-print("Number of players:")
-number_of_players = int(input())
-players = []
-for i in range(number_of_players):
-    print("Player's name:")
-    player_name = input()
-    players.append(Player(player_name))
+def players_list():
+    """
+    Заполнение массива игроков: каждый вводит свое имя.
+    :return: массив игроков
+    """
+    print("Number of players:")
+    number_of_players = int(input())
+    players = []
+    for i in range(number_of_players):
+        print("Player's name:")
+        player_name = input()
+        players.append(Player(player_name))
+
+    return players
 
 
-def score_table(players):
+def analyse_rating_table(players):
+    """
+    Анализ таблицы с результатами (если полученные в игре результаты меньше результатов из таблицы,
+    то табличные данные не будут изменены; если появился новый игрок, то его результаты будут занесены в таблицу.
+    :param players: массив игроков
+    :return: измененный массив игроков
+    """
+    rating_file = open('score.txt', 'r')
+
+    table = rating_file.readlines()
+
+    for line in table:
+        if line != "Leaderboard:\n":
+            name = line.split()[0]
+            rating = int(line.split()[1])
+
+            player_found = False
+            for player in players:
+                if player.name == name:
+                    if player.rating < rating:
+                        player.rating = rating
+
+                    player_found = True
+
+            if not player_found:
+                players.append(Player(name, rating))
+
+    rating_file.close()
+
+    return players
+
+
+def write_rating_table(players):
     """
     Заполнение таблицы с рейтингом
     :param players: массив игроков
-    :return:
     """
+
+    players = analyse_rating_table(players)
+
+    rating_file = open('score.txt', 'w')
+    rating_file.write("Leaderboard:\n")
     players.sort(key=lambda player: player.rating, reverse=True)
-    score_file = open('score.txt', 'w')
-    score_file.write("Best players:\n")
-
     for i in range(len(players)):
-        score_file.write(str(i + 1) + ")" + " " + players[i].name + " " + str(players[i].rating) + "\n")
+        rating_file.write(players[i].name + " " + str(players[i].rating) + "\n")
 
-    score_file.close()
+    rating_file.close()
 
 
 class Target(object):
@@ -165,26 +207,68 @@ def game_over_screen(player):
     print("Score: ", player.score)
     print("Rating: ", player.rating)
 
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.update()
+
+def start_screen(player, timer):
+    """
+    Стартовый экран
+    :param player: игрок
+    :param timer: таймер игры
+    :return: флаг окончания игры, время начала игры
+    """
+    print(player.name, "'s ", "turn")
+    print("Start in 5 sec")
+    print("You will have {} seconds".format(timer))
+    print("Do not hit bombs!")
+    time.sleep(5)
+
+    return False, time.time()
+
+
+def create_ball_array(COLORS):
+    """
+    Создаем массив целей
+    :param COLORS: массив цветов
+    :return: массив целей
+    """
+    ball_array = []
+
+    for i in range(10):
+        ball_array.append(Target(COLORS[randint(1, 5)]))
+
+    return ball_array
+
+
+def process_step(finished, ball_array):
+    """
+    Обработка игрового шага
+    :param finished: флаг окончания игры
+    :param ball_array: массив целей
+    :return: флаг, массив целей (после изменения координат)
+    """
+    if finished:
+        game_over_screen(player)
+
+    if time.time() - start_time >= timer:
+        finished = True
+        game_over_screen(player)
+
+    for target in ball_array:
+        target.draw()
+        target.move()
+
+    pygame.display.update()
+    screen.fill(BLACK)
+
+    return finished, ball_array
+
+players = players_list()
 
 # игроки поочереди играют
 for player in players:
 
-    # заполнение массива целей
-    ball_array = []
-
-    for i in range(10):
-        ball_array.append(Target(COLORS[randint(0, 5)]))
-
-    print(player.name, "'s ", "turn")
-    print("Start in 5 sec")
-    print("You will have {} seconds".format(timer))
-    time.sleep(5)
-
-    finished = False
-    start_time = time.time()
+    ball_array = create_ball_array(COLORS)
+    finished, start_time = start_screen(player, timer)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
     while not finished:
         clock.tick(FPS)
@@ -196,22 +280,12 @@ for player in players:
                                                         player.rating)
                 player.set_points(score, rating)
 
+#переопределение массива целей - необходимая мера
+        finished, ball_array = process_step(finished, ball_array)
+
         if finished:
-            game_over_screen(player)
             continue
-
-        for target in ball_array:
-            target.draw()
-            target.move()
-
-        if time.time() - start_time >= timer:
-            finished = True
-            game_over_screen(player)
-            continue
-
-        pygame.display.update()
-        screen.fill(BLACK)
 
 pygame.quit()
 
-score_table(players)
+write_rating_table(players)
