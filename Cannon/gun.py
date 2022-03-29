@@ -21,14 +21,13 @@ HEIGHT = 600
 
 
 class Ball:
-    def __init__(self, screen: pygame.Surface, x=40, y=450, gravity=4):
+    def __init__(self, x=40, y=450, gravity=4, reduction=0.1, target=False):
         """ Конструктор класса ball
 
         Args:
         x - начальное положение мяча по горизонтали
         y - начальное положение мяча по вертикали
         """
-        self.screen = screen
         self.x = x
         self.y = y
         self.radius = 10
@@ -37,8 +36,9 @@ class Ball:
         self.color = GAME_COLORS[randint(1, 5)]
         self.live = 30
         self.gravity = gravity
-        self.reduction = 0.7
-        self.generator_key = randint(1, 1)
+        self.reduction = reduction
+        self.target = target
+        self.type = 1
 
     def move(self):
         """Переместить мяч по прошествии единицы времени.
@@ -71,40 +71,67 @@ class Ball:
             self.y = HEIGHT - self.radius
 
     def draw(self):
-        if self.generator_key == 1:
+        if self.type == 1:
             pygame.draw.circle(
-                self.screen,
+                screen,
                 self.color,
                 (self.x, self.y),
                 self.radius
             )
 
+        if self.type == 2 and not self.target:
+            pygame.draw.circle(screen, BLACK, (self.x, self.y), self.radius)
+
+
 class Target(Ball):
     def __init__(self):
-        super().__init__(screen, randint(100, 700), randint(100, 500), gravity=0)
+        super().__init__(randint(100, 700), randint(100, 500), gravity=0, reduction=0, target=True)
         """
         Инициализация класса
         """
         self.color = RED
-        self.vx = randint(5, 10)
-        self.vy = randint(5, 10)
+        self.vx = randint(-10, 10)
+        self.vy = randint(-10, 10)
         self.radius = randint(10, 30)
         self.reduction = 1
-        #self.generator_key == 1
+        self.generator_key = randint(1, 2)
+
+    def draw(self):
+        if self.generator_key == 1:
+            super().draw()
+        elif self.generator_key == 2:
+            pygame.draw.circle(screen, self.color, (self.x, self.y), int(self.radius))
+            pygame.draw.circle(screen, (0, 255, 0), (self.x, self.y), int(self.radius * 3 / 4))
+
+    def move(self):
+        if self.generator_key == 1:
+            super().move()
+        elif self.generator_key == 2:
+            self.vx += randint(-3, 3)
+            if self.vx > 10:
+                self.vx = 10
+            if self.vx < -10:
+                self.vx = -10
+            self.vy += randint(-3, 3)
+            if self.vy > 10:
+                self.vy = 10
+            if self.vy < -10:
+                self.vy = -10
+            super().move()
 
 
 class Gun:
-    def __init__(self, screen):
-        self.screen = screen
+    def __init__(self, x=100):
         self.f2_power = 10
         self.f2_on = 0
         self.angle = 1
         self.color = GREY
+        self.x = x
 
-    def fire2_start(self, event):
+    def fire2_start(self):
         self.f2_on = 1
 
-    def fire2_end(self, event):
+    def fire2_end(self):
         """Выстрел мячом.
 
         Происходит при отпускании кнопки мыши.
@@ -112,19 +139,38 @@ class Gun:
         """
         global ball_array, bullet
         bullet += 1
-        new_ball = Ball(self.screen)
+        new_ball = Ball(self.x)
         new_ball.radius += 5
-        self.angle = math.atan((event.pos[1] - new_ball.y) / (event.pos[0] - new_ball.x))
         new_ball.vx = self.f2_power * math.cos(self.angle)
         new_ball.vy = self.f2_power * math.sin(self.angle)
         ball_array.append(new_ball)
         self.f2_on = 0
         self.f2_power = 10
 
-    def targetting(self, event):
+    def move(self):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                self.x -= 5
+            elif event.key == pygame.K_RIGHT:
+                self.x += 5
+
+        if self.x < 25:
+            self.x = 25
+        if self.x > WIDTH - 25:
+            self.x = WIDTH - 25
+        if WIDTH / 2 - 50 < self.x < WIDTH / 2:
+            self.x = WIDTH / 2 - 50
+        if WIDTH / 2 < self.x < WIDTH / 2 + 50:
+            self.x = WIDTH / 2 + 50
+
+    def targetting(self):
         """Прицеливание. Зависит от положения мыши."""
-        if event:
-            self.angle = math.atan((event.pos[1] - 450) / (event.pos[0] - 40))
+        if event.pos[0] - self.x != 0 and event.pos[0] > self.x and event.pos[1] < 450:
+            self.angle = math.atan((event.pos[1] - 450) / (event.pos[0] - self.x))
+        elif event.pos[0] - self.x != 0 and event.pos[0] < self.x and event.pos[1] < 450:
+            self.angle = math.atan((event.pos[1] - 450) / (event.pos[0] - self.x)) + math.pi
+        else:
+            self.angle = - math.pi / 2
         if self.f2_on:
             self.color = RED
         else:
@@ -132,13 +178,16 @@ class Gun:
 
     def draw(self):
         pygame.draw.polygon(
-            self.screen,
+            screen,
             self.color,
-            [[20, 450], [20 - 5 * math.sin(self.angle), 450 + 5 * math.cos(self.angle)],
-             [20 - 5 * math.sin(self.angle) + self.f2_power * math.cos(self.angle),
+            [[self.x, 450], [self.x - 5 * math.sin(self.angle), 450 + 5 * math.cos(self.angle)],
+             [self.x - 5 * math.sin(self.angle) + self.f2_power * math.cos(self.angle),
               450 + 5 * math.cos(self.angle) + self.f2_power * math.sin(self.angle)],
-             [20 + self.f2_power * math.cos(self.angle), 450 + self.f2_power * math.sin(self.angle)]]
+             [self.x + self.f2_power * math.cos(self.angle), 450 + self.f2_power * math.sin(self.angle)]]
         )
+        pygame.draw.rect(screen, GREEN, (self.x - 15, 450, 30, 15))
+        pygame.draw.circle(screen, GREY, (self.x - 8, 466), 5)
+        pygame.draw.circle(screen, GREY, (self.x + 8, 466), 5)
 
     def power_up(self):
         if self.f2_on:
@@ -147,6 +196,11 @@ class Gun:
             self.color = YELLOW
         else:
             self.color = GREY
+
+
+class Opponent(Gun):
+    def __init__(self):
+        super().__init__(WIDTH - 100)
 
 
 def create_target_array(number_of_targets):
@@ -160,11 +214,15 @@ def create_target_array(number_of_targets):
 def draw_game_objects(guns, targets, balls):
     screen.fill(WHITE)
     guns.draw()
+    opponent.draw()
     for target in targets:
         target.draw()
 
     for ball in balls:
         ball.draw()
+
+    pygame.draw.rect(screen, GREEN, (0, 471, WIDTH, 130))
+    pygame.draw.rect(screen, GREEN, (WIDTH / 2 - 25, 400, 50, 100))
 
     pygame.display.update()
 
@@ -175,6 +233,8 @@ def move_game_objects(targets, balls):
 
     for ball in balls:
         ball.move()
+
+    gun.move()
 
 
 def process_event(ball, targets, rating):
@@ -193,12 +253,12 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
 score = 0
 ball_array = []
-target_array = create_target_array(3)
+target_array = create_target_array(4)
 
 clock = pygame.time.Clock()
-gun = Gun(screen)
 finished = False
-
+gun = Gun()
+opponent = Opponent()
 while not finished:
     draw_game_objects(gun, target_array, ball_array)
     clock.tick(FPS)
@@ -206,12 +266,12 @@ while not finished:
         if event.type == pygame.QUIT:
             finished = True
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            gun.fire2_start(event)
+            gun.fire2_start()
         elif event.type == pygame.MOUSEBUTTONUP:
-            gun.fire2_end(event)
+            gun.fire2_end()
             bullet += 1
         elif event.type == pygame.MOUSEMOTION:
-            gun.targetting(event)
+            gun.targetting()
 
     if bullet:
         target_array, score = process_event(ball_array[-1], target_array, score)
