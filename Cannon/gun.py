@@ -27,12 +27,15 @@ clock = pygame.time.Clock()
 
 class Ball:
     def __init__(self, x=40, y=450, gravity=4, reduction=0.1, target=False):
-        """ Конструктор класса ball
-
-        Args:
-        x - начальное положение мяча по горизонтали
-        y - начальное положение мяча по вертикали
         """
+        Инициализация класса Ball
+        :param x: координата
+        :param y: координата
+        :param gravity: значение гравитации для шара
+        :param reduction: коэффициент угасания
+        :param target: цель/не цель
+        """
+
         self.x = x
         self.y = y
         self.radius = 10
@@ -43,7 +46,6 @@ class Ball:
         self.gravity = gravity
         self.reduction = reduction
         self.target = target
-        self.type = 1
 
     def move(self):
         """Переместить мяч по прошествии единицы времени.
@@ -76,24 +78,23 @@ class Ball:
             self.y = HEIGHT - self.radius
 
     def draw(self):
-        if self.type == 1:
-            pygame.draw.circle(
-                screen,
-                self.color,
-                (self.x, self.y),
-                self.radius
-            )
-
-        if self.type == 2 and not self.target:
-            pygame.draw.circle(screen, BLACK, (self.x, self.y), self.radius)
+        """
+        Отрисовка шарика
+        """
+        pygame.draw.circle(
+            screen,
+            self.color,
+            (self.x, self.y),
+            self.radius
+        )
 
 
 class Target(Ball):
     def __init__(self):
+        """
+        Инициализация класса цели
+        """
         super().__init__(randint(100, 700), randint(100, 500), gravity=0, reduction=0, target=True)
-        """
-        Инициализация класса
-        """
         self.color = RED
         self.vx = randint(-10, 10)
         self.vy = randint(-10, 10)
@@ -102,6 +103,9 @@ class Target(Ball):
         self.generator_key = randint(1, 2)
 
     def draw(self):
+        """
+        Отрисовка цели
+        """
         if self.generator_key == 1:
             super().draw()
         elif self.generator_key == 2:
@@ -109,6 +113,9 @@ class Target(Ball):
             pygame.draw.circle(screen, (0, 255, 0), (self.x, self.y), int(self.radius * 3 / 4))
 
     def move(self):
+        """
+        Обработка передвижения цели
+        """
         if self.generator_key == 1:
             super().move()
         elif self.generator_key == 2:
@@ -127,6 +134,10 @@ class Target(Ball):
 
 class Gun:
     def __init__(self, x=100):
+        """
+        Инициализация класса пушки
+        :param x: положение пушки по горизонтали
+        """
         self.f2_power = 10
         self.f2_on = 0
         self.angle = 1
@@ -136,6 +147,9 @@ class Gun:
         self.released = False
 
     def fire2_start(self):
+        """
+        Функция начала прицеливания
+        """
         self.f2_on = 1
 
     def fire2_end(self, balls_array):
@@ -152,7 +166,12 @@ class Gun:
         self.f2_on = 0
         self.f2_power = 10
 
+        return balls_array
+
     def move(self):
+        """
+        Обработка движения пушки и ракеты
+        """
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 self.x -= 5
@@ -187,6 +206,9 @@ class Gun:
             self.color = GREY
 
     def draw(self):
+        """
+        Отрисовка пушки и ракеты
+        """
         pygame.draw.polygon(
             screen,
             self.color,
@@ -202,11 +224,17 @@ class Gun:
         self.rocket.draw()
 
     def release(self):
+        """
+        Функция запуска ракеты по нажатию на стрелку вверх
+        """
         if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
             self.released = True
             self.rocket.v = 10
 
     def power_up(self):
+        """
+        Зарядка ракеты
+        """
         if self.f2_on:
             if self.f2_power < 100:
                 self.f2_power += 1
@@ -217,6 +245,9 @@ class Gun:
 
 class Rocket:
     def __init__(self):
+        """
+        Инициализация класса ракета
+        """
         self.x = 100
         self.y = 460
         self.v = 0
@@ -224,6 +255,9 @@ class Rocket:
         self.key = 1
 
     def draw(self):
+        """
+        Отрисовка ракеты
+        """
         if self.key:
             pygame.draw.polygon(
                 screen,
@@ -235,6 +269,9 @@ class Rocket:
             )
 
     def move(self):
+        """
+        Обработка движения ракеты с учетом возможности изменения направления ее движения нажатием на стрелки
+        """
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 self.direction += 0.05
@@ -252,33 +289,52 @@ class Rocket:
 
 class Bomber:
     def __init__(self):
+        """
+        Инициализация класса бомбардировщика
+        """
         self.color = MAGENTA
         self.x = -2000
         self.y = 100
 
     def draw(self):
+        """
+        Отрисовка бомбардировщика
+        """
         pygame.draw.rect(screen, self.color, (self.x, self.y, 100, 20))
         pygame.draw.rect(screen, self.color, (self.x + 50, self.y - 30, 20, 80))
 
     def move(self):
+        """
+        Обработка движения бомбардировщика
+        """
         self.x += 7
         if self.x > WIDTH + 10:
             self.x = randint(-5000, - 1000)
             self.y = randint(50, 150)
 
-    def bomb(self):
-        if randint(50, 200) < self.x < randint(600, 750) and len(target_array) < 50:
+    def bomb(self, target_pool):
+        """
+        Функция бомбометания
+        @:param target_pool массив целей
+        :return обновленный массив целей
+        """
+        if randint(50, 200) < self.x < randint(600, 750) and len(target_pool) < 50:
             new_ball = Target()
             new_ball.radius = randint(3, 7)
             new_ball.vx = randint(-5, 5)
             new_ball.vy = randint(-3, 3)
             new_ball.x = int(self.x) + 20
             new_ball.y = self.y + 20
-            target_array.append(new_ball)
+            target_pool.append(new_ball)
+
+        return target_pool
 
 
 class Opponent(Gun):
     def __init__(self):
+        """
+        Инициализация класса бота
+        """
         super().__init__()
         self.x = WIDTH / 2 + 50
         self.direction = True
@@ -287,6 +343,11 @@ class Opponent(Gun):
         self.rocket.key = 0
 
     def fire(self, balls_array):
+        """
+        Реализация стрельбы ботом
+        :param balls_array: массив шаровых снарядов
+        :return: обновленный массив шаровых снарядов
+        """
         self.f2_power = randint(40, 60)
         new_ball = Ball(int(self.x))
         new_ball.radius += 5
@@ -294,7 +355,12 @@ class Opponent(Gun):
         new_ball.vy = self.f2_power * math.sin(self.angle)
         balls_array.append(new_ball)
 
+        return balls_array
+
     def move(self):
+        """
+        Обработка движения танка-бота
+        """
         if self.x > WIDTH - 25 or self.x < WIDTH / 2 + 50:
             self.direction = not self.direction
 
@@ -308,6 +374,10 @@ class Opponent(Gun):
 
 
 def create_target_array(number_of_targets):
+    """
+    Создание начального массива целей нужного размера
+    :param number_of_targets: необходимое количество целей
+    """
     targets_array = []
     for i in range(number_of_targets):
         targets_array.append(Target())
@@ -315,13 +385,20 @@ def create_target_array(number_of_targets):
     return targets_array
 
 
-def draw_game_objects(guns, targets, balls):
+def draw_game_objects(gun_player, targets, balls, opponent_player, bombardier):
+    """
+    Отрисовка игры
+    :param gun_player: пушка-игрок
+    :param targets: массив целей
+    :param balls: массив шаровых снарядов
+    :param opponent_player: пушка-бот
+    :param bombardier: бомбардировщик
+    """
     screen.fill(WHITE)
 
-    bomber.draw()
-
-    guns.draw()
-    opponent.draw()
+    bombardier.draw()
+    gun_player.draw()
+    opponent_player.draw()
     for target in targets:
         target.draw()
 
@@ -330,36 +407,53 @@ def draw_game_objects(guns, targets, balls):
 
     pygame.draw.rect(screen, GREEN, (0, 471, WIDTH, 130))
     pygame.draw.rect(screen, GREEN, (WIDTH / 2 - 25, 400, 50, 100))
-
+    clock.tick(FPS)
     pygame.display.update()
 
 
-def move_game_objects(targets, balls):
+def move_game_objects(gun_player, targets, balls, opponent_player, bombardier):
+    """
+    Обработка движения игровых оъектов
+    :param gun_player: пушка-игрок
+    :param targets: массив целей
+    :param balls: массив шаровых снарядов
+    :param opponent_player: пушка-бот
+    :param bombardier: бомбардировщик
+    """
     for target in targets:
         target.move()
 
     for ball in balls:
         ball.move()
 
-    gun.move()
-    bomber.move()
+    gun_player.move()
+    bombardier.move()
 
     if (time.time() - start_time) % 3 < 0.05:
-        opponent.fire(ball_array)
+        balls = opponent_player.fire(balls)
 
-    bomber.bomb()
+    targets = bomber.bomb(targets)
 
-    opponent.move()
-    gun.power_up()
+    opponent_player.move()
+    gun_player.power_up()
+
+    return gun_player, targets, balls, opponent_player, bombardier
 
 
 def process_hit(ball, targets, rating):
+    """
+    Обработка события попадание
+    :param ball: шаровой снаряд
+    :param targets: массив целей
+    :param rating: сбитые цели
+    :return: массив целей, обновленный с учетом уничтоженных объектов
+    """
     targets_to_delete = []
     for i in range(len(targets)):
         quaddistance = (targets[i].x - ball.x) ** 2 + (targets[i].y - ball.y) ** 2
         quad_distance_rocket = (targets[i].x - gun.rocket.x) ** 2 + (targets[i].y - gun.rocket.y) ** 2
 
-        if quaddistance <= (targets[i].radius + ball.radius) ** 2 or quad_distance_rocket <= 1000:
+        if quaddistance <= (targets[i].radius + ball.radius) ** 2 or quad_distance_rocket <= 2000:
             rating += 1
             targets_to_delete.append(targets[i])
 
@@ -369,39 +463,56 @@ def process_hit(ball, targets, rating):
 
 
 def start_game():
+    """
+    Функция начала игры. Инициализирует основные игровые объекты
+    :return время начало игры, массив шаровых снарядов, массив целей,
+    количество снарядов, счет, флаг конца игры, пушка-игрок, пушка-бот, бомбардировщик
+    """
     new_gun = Gun()
     new_opponent = Opponent()
     begin_time = time.time()
     new_bomber = Bomber()
-    return begin_time, [], create_target_array(4), 0, 0, False, new_gun, new_opponent, new_bomber
+    flag = False
+    bullets = 0
+    rating = 0
+    balls_array = []
+    return begin_time, balls_array, create_target_array(4), bullets, rating, flag, new_gun, new_opponent, new_bomber
 
 
-def process_event(flag, bullets):
+def process_event(flag, bullets, array_of_balls):
+    """
+    Обработка игрового события
+    :param flag: флаг конца игры
+    :param bullets: количество снарядов
+    :param array_of_balls: массив шаровых снарядов
+    :return: флаг конца игры, количество снарядов, массив шаровых снарядов
+    """
     if event.type == pygame.QUIT:
         flag = True
     elif event.type == pygame.MOUSEBUTTONDOWN:
         gun.fire2_start()
     elif event.type == pygame.MOUSEBUTTONUP:
-        gun.fire2_end(ball_array)
+        array_of_balls = gun.fire2_end(ball_array)
         bullets += 1
     elif event.type == pygame.MOUSEMOTION:
         gun.targetting()
 
     gun.release()
 
-    return flag, bullets
+    return flag, bullets, array_of_balls
 
 
 start_time, ball_array, target_array, bullet, score, finished, gun, opponent, bomber = start_game()
+
 while not finished:
-    draw_game_objects(gun, target_array, ball_array)
-    clock.tick(FPS)
+    draw_game_objects(gun, target_array, ball_array, opponent, bomber)
+
     for event in pygame.event.get():
-        finished, bullet = process_event(finished, bullet)
+        finished, bullet, ball_array = process_event(finished, bullet, ball_array)
 
     if bullet or gun.released:
         target_array, score = process_hit(ball_array[-1], target_array, score)
 
-    move_game_objects(target_array, ball_array)
+    gun, target_array, ball_array, opponent, bomber = move_game_objects(gun, target_array, ball_array, opponent, bomber)
 
 pygame.quit()
