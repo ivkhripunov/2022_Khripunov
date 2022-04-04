@@ -182,7 +182,8 @@ def process_event(ball_array, player):
         if quad_distance <= ball_array[i].radius ** 2:
             print("Gotcha!")
             player.score += 1
-            player.rating += ball_array[i].radius * ball_array[i].speed + ball_array[i].generator_key * ball_array[i].radius
+            player.rating += ball_array[i].radius * ball_array[i].speed + ball_array[i].generator_key * ball_array[
+                i].radius
             if ball_array[i].generator_key == -1:
                 print("You hit the bomb!")
                 ball_array[i] = Target(COLORS[randint(0, 5)])
@@ -289,5 +290,5 @@ for player in players:
 
 pygame.quit()
 
-#выводим таблицу с результатами
+# выводим таблицу с результатами
 write_rating_table(players)
