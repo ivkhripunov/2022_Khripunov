@@ -584,7 +584,7 @@ def process_event(events, flag, bullets, array_of_balls, game_gun):
 
 def game():
     """
-    Основная функция игры
+    Основная функция для игры
     """
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
