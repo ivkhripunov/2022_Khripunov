@@ -479,22 +479,23 @@ def start_game():
     return begin_time, balls_array, create_target_array(4), bullets, rating, flag, new_gun, new_opponent, new_bomber
 
 
-def process_event(flag, bullets, array_of_balls):
+def process_event(events, flag, bullets, array_of_balls):
     """
     Обработка игрового события
+    :param events: игровое событие
     :param flag: флаг конца игры
     :param bullets: количество снарядов
     :param array_of_balls: массив шаровых снарядов
     :return: флаг конца игры, количество снарядов, массив шаровых снарядов
     """
-    if event.type == pygame.QUIT:
+    if events.type == pygame.QUIT:
         flag = True
-    elif event.type == pygame.MOUSEBUTTONDOWN:
+    elif events.type == pygame.MOUSEBUTTONDOWN:
         gun.fire2_start()
-    elif event.type == pygame.MOUSEBUTTONUP:
+    elif events.type == pygame.MOUSEBUTTONUP:
         array_of_balls = gun.fire2_end(ball_array)
         bullets += 1
-    elif event.type == pygame.MOUSEMOTION:
+    elif events.type == pygame.MOUSEMOTION:
         gun.targetting()
 
     gun.release()
@@ -508,7 +509,7 @@ while not finished:
     draw_game_objects(gun, target_array, ball_array, opponent, bomber)
 
     for event in pygame.event.get():
-        finished, bullet, ball_array = process_event(finished, bullet, ball_array)
+        finished, bullet, ball_array = process_event(event, finished, bullet, ball_array)
 
     if bullet or gun.released:
         target_array, score = process_hit(ball_array[-1], target_array, score)
