@@ -20,10 +20,6 @@ GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 WIDTH = 800
 HEIGHT = 600
 
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-
 
 class Ball:
     def __init__(self, x=40, y=450, gravity=4, reduction=0.1, target=False):
@@ -77,12 +73,13 @@ class Ball:
             self.vx = self.reduction * self.vx
             self.y = HEIGHT - self.radius
 
-    def draw(self):
+    def draw(self, surface):
         """
         Отрисовка шарика
+        :param surface: поверхность для отрисовки
         """
         pygame.draw.circle(
-            screen,
+            surface,
             self.color,
             (self.x, self.y),
             self.radius
@@ -102,15 +99,16 @@ class Target(Ball):
         self.reduction = 1
         self.generator_key = randint(1, 2)
 
-    def draw(self):
+    def draw(self, surface):
         """
         Отрисовка цели
+        :param surface: поверхность для отрисовки
         """
         if self.generator_key == 1:
-            super().draw()
+            super().draw(surface)
         elif self.generator_key == 2:
-            pygame.draw.circle(screen, self.color, (self.x, self.y), int(self.radius))
-            pygame.draw.circle(screen, (0, 255, 0), (self.x, self.y), int(self.radius * 3 / 4))
+            pygame.draw.circle(surface, self.color, (self.x, self.y), int(self.radius))
+            pygame.draw.circle(surface, (0, 255, 0), (self.x, self.y), int(self.radius * 3 / 4))
 
     def move(self):
         """
@@ -143,6 +141,7 @@ class Gun:
         self.angle = 1
         self.color = GREY
         self.x = x
+        self.v = 0
         self.rocket = Rocket()
         self.released = False
 
@@ -154,9 +153,9 @@ class Gun:
 
     def fire2_end(self, balls_array):
         """Выстрел мячом.
-
         Происходит при отпускании кнопки мыши.
         Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
+        :param balls_array: массив шаровых снарядов
         """
         new_ball = Ball(self.x)
         new_ball.radius += 5
@@ -170,13 +169,9 @@ class Gun:
 
     def move(self):
         """
-        Обработка движения пушки и ракеты
+        Движение танка
         """
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                self.x -= 5
-            elif event.key == pygame.K_RIGHT:
-                self.x += 5
+        self.x += self.v
 
         if self.x < 25:
             self.x = 25
@@ -189,15 +184,33 @@ class Gun:
         if not self.released:
             self.rocket.x = self.x - 10
 
-        if self.released:
-            self.rocket.move()
+    def move_key(self, events):
+        """
+        Обработка движения пушки по нажатию
+        :param events: игровое событие
+        """
 
-    def targetting(self):
-        """Прицеливание. Зависит от положения мыши."""
-        if event.pos[0] - self.x != 0 and event.pos[0] > self.x and event.pos[1] < 450:
-            self.angle = math.atan((event.pos[1] - 450) / (event.pos[0] - self.x))
-        elif event.pos[0] - self.x != 0 and event.pos[0] < self.x and event.pos[1] < 450:
-            self.angle = math.atan((event.pos[1] - 450) / (event.pos[0] - self.x)) + math.pi
+        if events.key == pygame.K_LEFT:
+            self.v = -5
+        elif events.key == pygame.K_RIGHT:
+            self.v = 5
+
+    def stop_key(self, events):
+        """
+        Остановка движения по нажатию
+        :param events: игровое событие
+        """
+        if events.key == pygame.K_LEFT or events.key == pygame.K_RIGHT:
+            self.v = 0
+
+    def targeting(self, events):
+        """Прицеливание. Зависит от положения мыши.
+        :param events: игровое событие
+        """
+        if events.pos[0] - self.x != 0 and events.pos[0] > self.x and events.pos[1] < 450:
+            self.angle = math.atan((events.pos[1] - 450) / (events.pos[0] - self.x))
+        elif events.pos[0] - self.x != 0 and events.pos[0] < self.x and events.pos[1] < 450:
+            self.angle = math.atan((events.pos[1] - 450) / (events.pos[0] - self.x)) + math.pi
         else:
             self.angle = - math.pi / 2
         if self.f2_on:
@@ -205,29 +218,31 @@ class Gun:
         else:
             self.color = GREY
 
-    def draw(self):
+    def draw(self, surface):
         """
         Отрисовка пушки и ракеты
+        :param surface: поверхность для отрисовки
         """
         pygame.draw.polygon(
-            screen,
+            surface,
             self.color,
             [[self.x, 450], [self.x - 5 * math.sin(self.angle), 450 + 5 * math.cos(self.angle)],
              [self.x - 5 * math.sin(self.angle) + self.f2_power * math.cos(self.angle),
               450 + 5 * math.cos(self.angle) + self.f2_power * math.sin(self.angle)],
              [self.x + self.f2_power * math.cos(self.angle), 450 + self.f2_power * math.sin(self.angle)]]
         )
-        pygame.draw.rect(screen, GREEN, (self.x - 15, 450, 30, 15))
-        pygame.draw.circle(screen, GREY, (self.x - 8, 466), 5)
-        pygame.draw.circle(screen, GREY, (self.x + 8, 466), 5)
+        pygame.draw.rect(surface, GREEN, (self.x - 15, 450, 30, 15))
+        pygame.draw.circle(surface, GREY, (self.x - 8, 466), 5)
+        pygame.draw.circle(surface, GREY, (self.x + 8, 466), 5)
 
-        self.rocket.draw()
+        self.rocket.draw(surface)
 
-    def release(self):
+    def release(self, events):
         """
         Функция запуска ракеты по нажатию на стрелку вверх
+        :param events: игровое событие
         """
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+        if events.type == pygame.KEYDOWN and events.key == pygame.K_UP:
             self.released = True
             self.rocket.v = 10
 
@@ -251,16 +266,18 @@ class Rocket:
         self.x = 100
         self.y = 460
         self.v = 0
+        self.angle_change = 0
         self.direction = math.pi / 2
         self.key = 1
 
-    def draw(self):
+    def draw(self, surface):
         """
         Отрисовка ракеты
+        :param surface: поверхность для отрисовки
         """
         if self.key:
             pygame.draw.polygon(
-                screen,
+                surface,
                 BLACK,
                 [[self.x, self.y], [self.x - 5 * math.sin(-self.direction), self.y + 5 * math.cos(-self.direction)],
                  [self.x - 5 * math.sin(-self.direction) + 30 * math.cos(-self.direction),
@@ -268,20 +285,33 @@ class Rocket:
                  [self.x + 30 * math.cos(-self.direction), self.y + 30 * math.sin(-self.direction)]]
             )
 
+    def change_direction_key(self, events):
+        """
+        Начало поворота по нажатию клавиши
+        :param events: игровое событие
+        """
+        if events.key == pygame.K_UP:
+            self.angle_change = 0.05
+        elif events.key == pygame.K_DOWN:
+            self.angle_change = -0.05
+
+    def stop_change_direction_key(self, events):
+        """
+        Остановка поворота по отпусканию клавиши
+        :param events:
+        """
+        if events.key == pygame.K_UP or events.key == pygame.K_DOWN:
+            self.angle_change = 0
+
     def move(self):
         """
         Обработка движения ракеты с учетом возможности изменения направления ее движения нажатием на стрелки
         """
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.direction += 0.05
-            if event.key == pygame.K_DOWN:
-                self.direction -= 0.05
-
-            if self.direction < -math.pi / 2:
-                self.direction = - math.pi / 2
-            elif self.direction > math.pi / 2:
-                self.direction = math.pi / 2
+        self.direction += self.angle_change
+        if self.direction < -math.pi / 2:
+            self.direction = - math.pi / 2
+        elif self.direction > math.pi / 2:
+            self.direction = math.pi / 2
 
         self.x += self.v * math.cos(self.direction)
         self.y += - self.v * math.sin(self.direction)
@@ -296,12 +326,13 @@ class Bomber:
         self.x = -2000
         self.y = 100
 
-    def draw(self):
+    def draw(self, surface):
         """
         Отрисовка бомбардировщика
+        :param surface: поверхность для отрисовки
         """
-        pygame.draw.rect(screen, self.color, (self.x, self.y, 100, 20))
-        pygame.draw.rect(screen, self.color, (self.x + 50, self.y - 30, 20, 80))
+        pygame.draw.rect(surface, self.color, (self.x, self.y, 100, 20))
+        pygame.draw.rect(surface, self.color, (self.x + 50, self.y - 30, 20, 80))
 
     def move(self):
         """
@@ -357,7 +388,7 @@ class Opponent(Gun):
 
         return balls_array
 
-    def move(self):
+    def move(self, events=0):
         """
         Обработка движения танка-бота
         """
@@ -385,35 +416,38 @@ def create_target_array(number_of_targets):
     return targets_array
 
 
-def draw_game_objects(gun_player, targets, balls, opponent_player, bombardier):
+def draw_game_objects(game_clock, surface, gun_player, targets, balls, opponent_player, bombardier):
     """
     Отрисовка игры
+    :param game_clock: игровые часы
+    :param surface: поверхность для отрисовки
     :param gun_player: пушка-игрок
     :param targets: массив целей
     :param balls: массив шаровых снарядов
     :param opponent_player: пушка-бот
     :param bombardier: бомбардировщик
     """
-    screen.fill(WHITE)
+    surface.fill(WHITE)
 
-    bombardier.draw()
-    gun_player.draw()
-    opponent_player.draw()
+    bombardier.draw(surface)
+    gun_player.draw(surface)
+    opponent_player.draw(surface)
     for target in targets:
-        target.draw()
+        target.draw(surface)
 
     for ball in balls:
-        ball.draw()
+        ball.draw(surface)
 
-    pygame.draw.rect(screen, GREEN, (0, 471, WIDTH, 130))
-    pygame.draw.rect(screen, GREEN, (WIDTH / 2 - 25, 400, 50, 100))
-    clock.tick(FPS)
+    pygame.draw.rect(surface, GREEN, (0, 471, WIDTH, 130))
+    pygame.draw.rect(surface, GREEN, (WIDTH / 2 - 25, 400, 50, 100))
+    game_clock.tick(FPS)
     pygame.display.update()
 
 
-def move_game_objects(gun_player, targets, balls, opponent_player, bombardier):
+def move_game_objects(begin_time, gun_player, targets, balls, opponent_player, bombardier):
     """
     Обработка движения игровых оъектов
+    :param begin_time: время начала игры
     :param gun_player: пушка-игрок
     :param targets: массив целей
     :param balls: массив шаровых снарядов
@@ -426,23 +460,26 @@ def move_game_objects(gun_player, targets, balls, opponent_player, bombardier):
     for ball in balls:
         ball.move()
 
-    gun_player.move()
     bombardier.move()
+    gun_player.move()
+    gun_player.rocket.move()
 
-    if (time.time() - start_time) % 3 < 0.05:
+    if (time.time() - begin_time) % 3 < 0.05:
         balls = opponent_player.fire(balls)
 
-    targets = bomber.bomb(targets)
+    targets = bombardier.bomb(targets)
 
+    gun_player.rocket.move()
     opponent_player.move()
     gun_player.power_up()
 
     return gun_player, targets, balls, opponent_player, bombardier
 
 
-def process_hit(ball, targets, rating):
+def process_hit(game_gun, ball, targets, rating):
     """
     Обработка события попадание
+    :param game_gun: основная пушка
     :param ball: шаровой снаряд
     :param targets: массив целей
     :param rating: сбитые цели
@@ -450,10 +487,10 @@ def process_hit(ball, targets, rating):
     """
     targets_to_delete = []
     for i in range(len(targets)):
-        quaddistance = (targets[i].x - ball.x) ** 2 + (targets[i].y - ball.y) ** 2
-        quad_distance_rocket = (targets[i].x - gun.rocket.x) ** 2 + (targets[i].y - gun.rocket.y) ** 2
+        quad_distance = (targets[i].x - ball.x) ** 2 + (targets[i].y - ball.y) ** 2
+        quad_distance_rocket = (targets[i].x - game_gun.rocket.x) ** 2 + (targets[i].y - game_gun.rocket.y) ** 2
 
-        if quaddistance <= (targets[i].radius + ball.radius) ** 2 or quad_distance_rocket <= 2000:
+        if quad_distance <= (targets[i].radius + ball.radius) ** 2 or quad_distance_rocket <= 2000:
             rating += 1
             targets_to_delete.append(targets[i])
 
@@ -483,46 +520,69 @@ def start_game():
     print("Use up and down arrow keys to control the rocket.")
     print("The game will start in 5 seconds.")
     print("Good luck!")
-    time.sleep(5)
+    time.sleep(0)
 
     return begin_time, balls_array, create_target_array(4), bullets, rating, flag, new_gun, new_opponent, new_bomber
 
 
-def process_event(events, flag, bullets, array_of_balls):
+def process_event(events, flag, bullets, array_of_balls, game_gun):
     """
     Обработка игрового события
     :param events: игровое событие
     :param flag: флаг конца игры
     :param bullets: количество снарядов
     :param array_of_balls: массив шаровых снарядов
-    :return: флаг конца игры, количество снарядов, массив шаровых снарядов
+    :param game_gun: основная пушка
+    :return: флаг конца игры, количество снарядов, массив шаровых снарядов, пушка
     """
     if events.type == pygame.QUIT:
         flag = True
     elif events.type == pygame.MOUSEBUTTONDOWN:
-        gun.fire2_start()
+        game_gun.fire2_start()
     elif events.type == pygame.MOUSEBUTTONUP:
-        array_of_balls = gun.fire2_end(ball_array)
+        array_of_balls = game_gun.fire2_end(array_of_balls)
         bullets += 1
+
     elif events.type == pygame.MOUSEMOTION:
-        gun.targetting()
+        game_gun.targeting(events)
 
-    gun.release()
+    if events.type == pygame.KEYDOWN:
+        game_gun.move_key(events)
+        if game_gun.released:
+            game_gun.rocket.change_direction_key(events)
 
-    return flag, bullets, array_of_balls
+    elif events.type == pygame.KEYUP:
+        game_gun.stop_key(events)
+        if game_gun.released:
+            game_gun.rocket.stop_change_direction_key(events)
+
+    game_gun.release(events)
+
+    return flag, bullets, array_of_balls, game_gun
 
 
-start_time, ball_array, target_array, bullet, score, finished, gun, opponent, bomber = start_game()
+def game():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
 
-while not finished:
-    draw_game_objects(gun, target_array, ball_array, opponent, bomber)
+    start_time, ball_array, target_array, bullet, score, finished, gun, opponent, bomber = start_game()
 
-    for event in pygame.event.get():
-        finished, bullet, ball_array = process_event(event, finished, bullet, ball_array)
+    while not finished:
+        draw_game_objects(clock, screen, gun, target_array, ball_array, opponent, bomber)
 
-    if bullet or gun.released:
-        target_array, score = process_hit(ball_array[-1], target_array, score)
+        for event in pygame.event.get():
+            finished, bullet, ball_array, gun = process_event(event, finished, bullet, ball_array, gun)
 
-    gun, target_array, ball_array, opponent, bomber = move_game_objects(gun, target_array, ball_array, opponent, bomber)
+        if len(ball_array) or gun.released:
+            target_array, score = process_hit(gun, ball_array[-1], target_array, score)
 
-pygame.quit()
+        gun, target_array, ball_array, opponent, bomber = move_game_objects(start_time, gun,
+                                                                            target_array,
+                                                                            ball_array,
+                                                                            opponent,
+                                                                            bomber)
+    pygame.quit()
+
+
+game()
