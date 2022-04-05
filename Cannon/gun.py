@@ -22,6 +22,10 @@ HEIGHT = 600
 
 
 class Ball:
+    """
+    Класс шарового снаряда
+    """
+
     def __init__(self, x=40, y=450, gravity=4, reduction=0.1, target=False):
         """
         Инициализация класса Ball
@@ -131,6 +135,10 @@ class Target(Ball):
 
 
 class Gun:
+    """
+    Класс пушки-танка
+    """
+
     def __init__(self, x=100):
         """
         Инициализация класса пушки
@@ -204,7 +212,8 @@ class Gun:
             self.v = 0
 
     def targeting(self, events):
-        """Прицеливание. Зависит от положения мыши.
+        """
+        Прицеливание. Зависит от положения мыши.
         :param events: игровое событие
         """
         if events.pos[0] - self.x != 0 and events.pos[0] > self.x and events.pos[1] < 450:
@@ -259,6 +268,10 @@ class Gun:
 
 
 class Rocket:
+    """
+    Класс управялемой ракеты
+    """
+
     def __init__(self):
         """
         Инициализация класса ракета
@@ -318,6 +331,10 @@ class Rocket:
 
 
 class Bomber:
+    """
+    Класс бомбардировщика
+    """
+
     def __init__(self):
         """
         Инициализация класса бомбардировщика
@@ -362,6 +379,10 @@ class Bomber:
 
 
 class Opponent(Gun):
+    """
+    Класс танка-оппонента
+    """
+
     def __init__(self):
         """
         Инициализация класса бота
@@ -562,6 +583,9 @@ def process_event(events, flag, bullets, array_of_balls, game_gun):
 
 
 def game():
+    """
+    Основная функция игры
+    """
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
