@@ -476,6 +476,15 @@ def start_game():
     bullets = 0
     rating = 0
     balls_array = []
+
+    print("Welcome to canon game!")
+    print("Use left and arrow keys to move your tank.")
+    print("Press up arrow key to release the rocket.")
+    print("Use up and down arrow keys to control the rocket.")
+    print("The game will start in 5 seconds.")
+    print("Good luck!")
+    time.sleep(5)
+
     return begin_time, balls_array, create_target_array(4), bullets, rating, flag, new_gun, new_opponent, new_bomber
 
 
